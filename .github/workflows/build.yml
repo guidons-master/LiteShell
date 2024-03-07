@@ -1,0 +1,19 @@
+name: LiteShell CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build
+      run: |
+        gcc examples/basic.c src/liteshell.c src/port/test.c -Iinclude
+        if [ $? -ne 0 ]; then
+          echo "Build Failed"
+          exit 1
+        fi
