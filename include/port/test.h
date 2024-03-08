@@ -2,6 +2,6 @@
 #define __PORT_H__
 
 int _getchar();
-void _putchar(char c);
+void _putchar(char);
 
 #endif

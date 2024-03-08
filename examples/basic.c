@@ -15,9 +15,9 @@ int main() {
     // 初始化Shell
     Shell.init();
     // 注册test命令, 参数为空
-    Shell.add(FUNC_CONVERT(test, "", "test for print"));
+    Shell.add(test, "", "test for print");
     // 注册test1命令, 签名为"icsfd"
-    Shell.add(FUNC_CONVERT(test1, "icsfd", "test1(int, char, char*, float, double)"));
+    Shell.add(test1, "icsfd", "test1(int, char, char*, float, double)");
     // 运行Shell
     while (1) Shell.run();
     // 销毁ShellQ

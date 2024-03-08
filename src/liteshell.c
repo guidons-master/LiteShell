@@ -40,9 +40,9 @@ typedef struct {
 liteshell_t Shell = {
     .init = _begin,
     .print = _print,
-    .add = _add,
+    .export = _export,
     .run = _run,
-    .free = _destroy
+    .free = _free
 };
 
 static any_t params[PARAMS_MAX] = { 0 };
@@ -56,9 +56,9 @@ void _begin() {
     map->size = INITIAL_MAP_SIZE;
     map->count = 0;
     map->entries = (entry_t**)malloc(sizeof(entry_t*) * map->size);
-    for (int i = 0; i < map->size; map->entries[i++] = (entry_t*)0);
-    _add(FUNC_CONVERT(help, "", "list all commands"));
-    _add(FUNC_CONVERT(clear, "", "clear the screen"));
+    for (unsigned int i = 0; i < map->size; map->entries[i++] = (entry_t*)0);
+    _export((func_t)help, "help", "", "show all commands");
+    _export((func_t)clear, "clear", "", "clear the screen");
     _print(" _     _ _         ____  _          _ _ \n");
     _print("| |   (_) |_ ___  / ___|| |__   ___| | |\n");
     _print("| |   | | __/ _ \\ \\___ \\| '_ \\ / _ \\ | |\n");
@@ -74,19 +74,17 @@ static INLINE int _strcmp(const char* str1, const char* str2) {
 
 static INLINE void _strcpy(char* dest, const char* src) {
     unsigned char i = 0;
-    for (i = 0; i < CMD_LEN_MAX && src[i] != '\0'; i++) {
-        dest[i] = src[i];
-    }
+    for (i = 0; i < CMD_LEN_MAX && src[i] != '\0'; dest[i] = src[i], i++);
     dest[i] = '\0';
 }
 
-static INLINE unsigned int hash(const char *str, unsigned int size) {
-    unsigned long hash = 5381;
-    int c;
-
-    while ((c = *str++))
-        hash = ((hash << 5) + hash) + c;
-
+static unsigned int fnv_hash(const char *str, unsigned int size) {
+    unsigned int hash = 0x9747b28c;
+    const unsigned char *p = (const unsigned char *)str;
+    while (*p) {
+        hash ^= (unsigned int)*p++;
+        hash *= 16777619U;
+    }
     return hash % size;
 }
 
@@ -94,16 +92,14 @@ static void resize() {
     int oldSize = map->size;
     map->size += map->size / 4;
     map->entries = (entry_t**)realloc(map->entries, sizeof(entry_t*) * map->size);
-    for (int i = oldSize; i < map->size; i++) {
-        map->entries[i] = (entry_t*)0;
-    }
+    for (unsigned int i = oldSize; i < map->size; map->entries[i++] = (entry_t*)0);
 }
 
-void _add(func_t func, const char* name, const char* sign, const char* desc) {
+void _export(func_t func, const char* name, const char* sign, const char* desc) {
     if (PTR_CHECK()) _begin();
     if (map->count >= map->size * 0.75)
         resize();
-    int index = hash(name, map->size);
+    int index = fnv_hash(name, map->size);
     entry_t* entry = (entry_t*)malloc(sizeof(entry_t));
     entry->key = name;
     entry->cmd = (cmd_t){.func = func, .sign = sign, .desc = desc};
@@ -113,7 +109,7 @@ void _add(func_t func, const char* name, const char* sign, const char* desc) {
 }
 
 static cmd_t match(const char* key) {
-    int index = hash(key, map->size);
+    int index = fnv_hash(key, map->size);
     entry_t* entry = map->entries[index];
     while (entry != ((void *)0)) {
         if (_strcmp(entry->key, key) == 0) {
@@ -141,7 +137,7 @@ static INLINE void clear() {
     _print("\033[2J\033[H");
 }
 
-void _destroy() {
+void _free() {
     if (PTR_CHECK()) return;
     for (int i = 0; i < map->size; i++) {
         entry_t* entry = map->entries[i];

@@ -24,7 +24,7 @@
     #define HISTORY_LEN_MAX                   10U
 #endif
 
-#define FUNC_CONVERT(func, sign, desc)      (func_t)func, #func, sign, desc 
+#define add(func, sign, desc)      export((func_t)func, #func, sign, desc) 
 
 typedef void (*func_t) ();
 
@@ -45,15 +45,15 @@ typedef struct {
     char _buff[CMD_LEN_MAX+1];
     void (*init)();
     void (*print)(const char* str);
-    void (*add)(func_t, const char* name, const char* sign, const char* desc);
+    void (*export)(func_t, const char* name, const char* sign, const char* desc);
     void (*run)();
     void (*free)();  
 }__attribute__((packed)) liteshell_t;
 
 void _begin();
-void _add(func_t, const char*, const char*, const char*);
+void _export(func_t, const char*, const char*, const char*);
 void _run();
-void _destroy();
+void _free();
 void _print(const char*);
 extern liteshell_t Shell;
 
