@@ -20,7 +20,7 @@ int main() {
     Shell.add(test1, "icsfd", "test1(int, char, char*, float, double)");
     // 运行Shell
     while (1) Shell.run();
-    // 销毁ShellQ
+    // 销毁Shell
     Shell.free();
     return 0;
 }

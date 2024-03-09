@@ -15,10 +15,6 @@ int _getchar() {
     return ch;
 }
 
-// int _getchar() {
-//     return getchar();
-// }
-
 void _putchar(char c) {
     putchar(c);
     fflush(stdout);

@@ -21,12 +21,14 @@
 
 #define INITIAL_MAP_SIZE                      10U
 
+/* 输入命令最大长度 */
 #define CMD_LEN_MAX                           29U
 
+/* 函数参数最大个数 */
 #define PARAMS_MAX                            10U
 
+/* 是否使用历史记录 */
 #define USE_HISTORY
-#define USE_AUTOCOMPLETE
 
 #ifdef USE_HISTORY
     #define HISTORY_LEN_MAX                   10U

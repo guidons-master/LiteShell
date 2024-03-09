@@ -5,22 +5,39 @@
 # *LiteShell*
         
 ![Build Status](https://github.com/guidons-master/LiteShell/actions/workflows/build.yml/badge.svg)
+[![Live Demo](https://img.shields.io/badge/demo-online-green)](https://guidons-master.github.io/LiteShell/)
 ![GitHub license](https://img.shields.io/github/license/guidons-master/LiteShell)
 
-**一个轻量高效、简单易用的嵌入式命令行工具**
+
+**轻量高效、简单易用的嵌入式命令行工具**
 
 </div>
 
 ## 🚀 项目介绍
 
-**`LiteShell`** 是一个轻量级、高效率且易于使用的嵌入式命令行工具,可以非常方便地集成到任何项目中,仅依赖于`stdlib`标准库。它的设计目标是为嵌入式系统提供一个简洁、功能齐全的命令行接口,以便于开发、调试和维护。
+**`LiteShell`** 是一个轻量级、高效率且易于使用的嵌入式命令行工具，可以非常方便地集成到任何项目中，仅依赖于 `stdlib` 标准库。它的设计目标是为嵌入式系统提供一个简洁、功能齐全的命令行接口，以便于开发、调试和维护。
 
 ## ⚙️ 实现原理
 
-- **命令注册和查找**:通过`哈希表+链表`的数据结构实现,可以在`O(1)`时间内高效地完成命令查询。
-- **命令参数解析**:使用`有限状态机`算法实现,可以对命令参数进行高效解析和类型转换。
+- **命令注册和查找**：通过 `哈希表+链表` 的数据结构实现，可以在 `O(1)` 时间内高效地完成命令查询。
+- **命令参数解析**：使用 `有限状态机` 算法实现，可以对命令参数进行高效解析和类型检查。
 
 ## 🛠️ 使用说明
+
+使用 `Shell.add()` 函数注册命令，该函数参数如下:
+    
+```c
+void Shell.add(void (*func)(), const char *signature, const char *desc);
+```
+- `func`：命令函数指针
+    - 命令函数的参数类型为 `any_t`，可以接受任意类型的参数
+    - 命令函数的参数个数和类型由 `signature` 参数指定
+    - 命令函数的返回值类型为 `void`
+- `signature`：命令参数签名
+    - 用于指定命令函数的参数个数和类型
+    - 例如：`"icsfd"` 表示命令函数有5个参数，分别为 `int`、`char`、`char*`、`float`、`double`
+- `desc`：命令描述
+    - 用于描述命令的功能和用法
 
 LiteShell支持以下基本数据类型作为命令参数:
 
@@ -31,6 +48,23 @@ LiteShell支持以下基本数据类型作为命令参数:
 | float(单精度浮点数)     | f    | 3.14  |
 | double(双精度浮点数)    | d    | 3.141 |
 | char*(字符串)           | s    | "abc" |
+
+其中 `any_t` 类型的定义如下:
+
+```
+typedef union {
+    char c;
+    unsigned char uc;
+    short s;
+    unsigned short us;
+    int i;
+    unsigned int ui;
+    long l;
+    float f;
+    double d;
+    char* str;
+} any_t;
+```
 
 ### 📚 示例代码
 
@@ -65,8 +99,9 @@ int main() {
 
 ### 🏃 运行示例
 
-在Linux平台下编译和运行示例代码:
+1.在线体验：[LiteShell for WebAssembly](https://guidons-master.github.io/LiteShell/)
 
+2.在Linux平台下编译和运行示例代码:
 ```bash
 gcc examples/basic.c src/liteshell.c src/port/test.c -Iinclude -o basic
 ./basic
@@ -78,30 +113,4 @@ gcc examples/basic.c src/liteshell.c src/port/test.c -Iinclude -o basic
 
 ## 📦 集成方式
 
-要在您的项目中集成LiteShell,只需要包含`liteshell.h`头文件,并链接`liteshell.c`源文件即可。您还需要为LiteShell提供`_putchar`和`_getchar`函数的实现,用于控制台输入输出。
-
-```c
-// 您的项目源文件
-#include "liteshell.h"
-
-// 实现_putchar函数,用于输出字符
-void __attribute__((weak)) _putchar(char c) {
-    // 将字符c输出到您的控制台或设备
-}
-
-// 实现_getchar函数,用于获取字符
-int __attribute__((weak)) _getchar() {
-    // 从您的控制台或设备获取一个字符并返回
-}
-
-int main() {
-    Shell.init();
-    // 注册您的命令
-    ...
-    while (1) Shell.run();
-    Shell.free();
-    return 0;
-}
-```
-
-就是这样,现在您可以享受LiteShell带来的便利了!如有任何疑问或建议,欢迎随时提出。
+要在您的项目中集成LiteShell，只需要包含 `liteshell.h` 头文件，并链接 `liteshell.c` 源文件即可。您还需要为LiteShell提供 `_putchar` 和 `_getchar` 函数的实现，用于控制台输入输出，参考 [port](./src/port/) 目录下的示例代码。
