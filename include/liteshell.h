@@ -11,6 +11,14 @@
     #define INLINE
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+    #define PACKED __attribute__((packed))
+#elif defined(__ICCARM__) || defined(__CC_ARM)
+    #define PACKED __packed
+#else
+    #define PACKED
+#endif
+
 #define INITIAL_MAP_SIZE                      10U
 
 #define CMD_LEN_MAX                           29U
@@ -41,14 +49,14 @@ typedef union {
     char* str;
 } any_t;
 
-typedef struct {
+typedef struct PACKED {
     char _buff[CMD_LEN_MAX+1];
     void (*init)();
     void (*print)(const char* str);
     void (*export)(func_t, const char* name, const char* sign, const char* desc);
     void (*run)();
     void (*free)();  
-}__attribute__((packed)) liteshell_t;
+} liteshell_t;
 
 void _begin();
 void _export(func_t, const char*, const char*, const char*);

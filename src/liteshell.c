@@ -6,7 +6,25 @@
 
 #define VERSION "1.0"
 
-typedef union {
+typedef struct PACKED {
+    func_t func;
+    const char* sign;
+    const char* desc;
+} cmd_t;
+
+typedef struct PACKED entry_t {
+    const char* key;
+    cmd_t cmd;
+    struct entry_t* next;
+} entry_t;
+
+typedef struct PACKED {
+    entry_t** entries;
+    unsigned int size;
+    unsigned int count;
+} map_t;
+
+union {
     enum {
         STATE_START,
         STATE_FUNC,
@@ -17,25 +35,7 @@ typedef union {
         STATE_ERROR_LEN
     } state;
     unsigned char state_bits;
-} state_t;
-
-typedef struct {
-    func_t func;
-    const char* sign;
-    const char* desc;
-}__attribute__((packed)) cmd_t;
-
-typedef struct entry_t {
-    const char* key;
-    cmd_t cmd;
-    struct entry_t* next;
-}__attribute__((packed)) entry_t;
-
-typedef struct {
-    entry_t** entries;
-    unsigned int size;
-    unsigned int count;
-}__attribute__((packed)) map_t;
+} input;
 
 liteshell_t Shell = {
     .init = _begin,
@@ -76,6 +76,12 @@ static INLINE void _strcpy(char* dest, const char* src) {
     unsigned char i = 0;
     for (i = 0; i < CMD_LEN_MAX && src[i] != '\0'; dest[i] = src[i], i++);
     dest[i] = '\0';
+}
+
+static INLINE unsigned char _strlen(const char* str) {
+    unsigned char len = 0;
+    while (str[len] != '\0') len++;
+    return len;
 }
 
 static unsigned int fnv_hash(const char *str, unsigned int size) {
@@ -252,109 +258,178 @@ static char* down_history() {
     return history[index[0]];
 }
 
-static void handle_key(char c) {
-    if (c == '\033') {
-        char* command = (char*)0;
-        _getchar();
-        switch(_getchar()) {
-            case 'A':
-                command = up_history();
-                break;
-            case 'B':
-                command = down_history();
-                break;
-        }
-        if (command != (char*)0) 
-            _strcpy(Shell._buff, command);
-    }
-}
-
 #endif
 
 void _run(void) {
-    if (PTR_CHECK()) _begin();
-    state_t input = { STATE_START };
+    input.state = STATE_START;
     static cmd_t cmd;
     static char c;
-    static char buff[CMD_LEN_MAX+1] = { 0 };
-    unsigned char sign_len = 0, next = 0, index = 0;
-    _print("\rLiteShell > ");
+    static char* command = (char*)0;
+    unsigned char next = 0, end = 0, sign_len = 0;
+    _print("\rLiteShell > \033[K");
 
-    do {
-        if ((c = _getchar()) == ' ' || c == '\t') 
-            continue;
-
-        if (next >= CMD_LEN_MAX) 
-            input.state = STATE_ERROR_FUNC;
-        else
-            Shell._buff[next] = c;
-
-        switch (input.state) {
-            case STATE_START:
-                if (c == '(' || c == '\n') {
-                    Shell._buff[next] = '\0';
-                    if ((cmd = match(Shell._buff)).sign == (const char*)0)
-                        input.state = STATE_ERROR_FUNC;
-                    else {
-                        while (cmd.sign[sign_len] != '\0') sign_len++;
-                        input.state = (sign_len == 0) ? STATE_DONE : ((c == '\n') ? STATE_ERROR_PARAMS : STATE_PARAMS);
-                    }
-                    next = 0;
-                } else
-                    next++;
-                break;
-            case STATE_PARAMS:
-                if (c == ',' || c == ')') {
-                    Shell._buff[next] = '\0';
-                    if (c == ')') input.state = STATE_DONE;
-                    if (index < sign_len) {
-                        switch (cmd.sign[index]) {
-                            case 'i':
-                                params[index] = (any_t){.l = atol(Shell._buff)};
-                                if (params[index].l == 0)
-                                    input.state = STATE_ERROR_PARAMS;
-                                break;
-                            case 'c':
-                                if (Shell._buff[1] == '\0')
-                                    params[index] = (any_t){.c = Shell._buff[0]};
-                                else 
-                                    input.state = STATE_ERROR_PARAMS;
-                                break;
-                            case 's':
-                                params[index] = (any_t){.str = buff};
-                                _strcpy(buff, Shell._buff);
-                                break;
-                            case 'f':
-                                params[index] = (any_t){.f = atof(Shell._buff)};
-                                if (params[index].f == 0.f)
-                                    input.state = STATE_ERROR_PARAMS;
-                                break;
-                            case 'd':
-                                params[index] = (any_t){.d = atof(Shell._buff)};
-                                if (params[index].d == 0.)
-                                    input.state = STATE_ERROR_PARAMS;
-                                break;
-                            default:
-                                input.state = STATE_ERROR_PARAMS;
-                        }
-                        index++;
-                    } else 
-                        input.state = STATE_ERROR_PARAMS;
-                    if (c == ')' && index < sign_len)
-                        input.state = STATE_ERROR_PARAMS;
-                    next = 0;
-                } else if (c == '\n')
-                    input.state = STATE_ERROR_PARAMS;
-                else
-                    next++;
-                break;
-            case STATE_DONE:
-            case STATE_ERROR_FUNC:
-            case STATE_ERROR_PARAMS:
-            case STATE_ERROR_LEN:
-                break;
+    while ((c = _getchar()) != '\n' || (Shell._buff[end] = next = 0)) {
+        if (end > CMD_LEN_MAX) {
+            input.state = STATE_ERROR_LEN;
+            break;
         }
-    } while(c != '\n' && c != -1);
+
+        switch (c) {
+            case '\033': 
+                _getchar();
+                switch(_getchar()) {
+                    case 'A': 
+                        command = up_history();
+                        break;
+                    case 'B':
+                        command = down_history();
+                        break;
+                    case 'C': 
+                        if (next < end) {
+                            _print("\033[C");
+                            next++;
+                        }
+                        break;
+                    case 'D':
+                        if (next > 0) {
+                            _print("\033[D");
+                            next--;
+                        }
+                        break;
+                }
+                if (command != (char*)0) {
+                    _strcpy(Shell._buff, command);
+                    _print("\rLiteShell > \033[K");
+                    _print(Shell._buff);
+                    end = next = _strlen(Shell._buff);
+                    command = (char*)0;
+                }
+                break;
+            case '\b':
+            case 127: 
+                if (next > 0) {
+                    unsigned char i;
+                    for (i = next; i < end; i++)
+                        if (i < end)
+                            Shell._buff[i-1] = Shell._buff[i];
+                    
+                    if (end > 0)
+                        Shell._buff[end-1] = '\0';
+                    _print("\033[D\033[K"); 
+                    if (end > next) {
+                        _print(Shell._buff + next - 1);
+                        for (i = 0; i < end - next; i++, _print("\033[D"));
+                    } 
+                    next--;
+                    end--;
+                }
+                break;
+            case ' ':
+                if (end < CMD_LEN_MAX) {
+                    for (unsigned char i = end + 1; i > next; i--)
+                        Shell._buff[i] = Shell._buff[i - 1];
+                    Shell._buff[next] = ' ';
+            
+                    end++;
+                    next++;
+                
+                    Shell._buff[end] = '\0';
+
+                    _print("\rLiteShell > \033[K");
+                    _print(Shell._buff);
+                    for (unsigned char i = 0; i < end - next; i++)
+                        _print("\033[D");
+                }
+                break;
+            case '\t':
+                break;
+            default:
+                if (end < CMD_LEN_MAX) {
+                    if (next < end) {
+                        for (unsigned char i = end; i > next; i--)
+                            Shell._buff[i] = Shell._buff[i - 1];
+                    }
+                    Shell._buff[next] = c;
+                    _putchar(c);
+                    next++;
+                    end++;
+                    Shell._buff[end] = '\0';
+                    if (next < end) {
+                        _print(Shell._buff + next);
+                        for (unsigned char i = next; i < end; i++)
+                            _print("\033[D");
+                    }
+                }
+        }
+    }
+
+    _print("\n");
+    if (end == 0) return;
+    _print(Shell._buff);
+    _print("\n");
+
+    // do {
+    //     c = Shell._buff[next];
+    //     switch (input.state) {
+    //         case STATE_START:
+    //             if (c == '(') {
+    //                 Shell._buff[next] = '\0';
+    //                 if ((cmd = match(Shell._buff)).sign == (const char*)0)
+    //                     input.state = STATE_ERROR_FUNC;
+    //                 else {
+    //                     sign_len = _strlen(cmd.sign);
+    //                     input.state = (sign_len == 0) ? STATE_DONE : STATE_PARAMS;
+    //                 }
+    //             }
+    //             break;
+    //         case STATE_PARAMS:
+    //             if (c == ',' || c == ')') {
+    //                 Shell._buff[next] = '\0';
+    //                 if (c == ')') input.state = STATE_DONE;
+    //                 if (index < sign_len) {
+    //                     switch (cmd.sign[index]) {
+    //                         case 'i':
+    //                             params[index] = (any_t){.l = atol(Shell._buff)};
+    //                             if (params[index].l == 0)
+    //                                 input.state = STATE_ERROR_PARAMS;
+    //                             break;
+    //                         case 'c':
+    //                             if (Shell._buff[1] == '\0')
+    //                                 params[index] = (any_t){.c = Shell._buff[0]};
+    //                             else 
+    //                                 input.state = STATE_ERROR_PARAMS;
+    //                             break;
+    //                         case 's':
+    //                             params[index] = (any_t){.str = buff};
+    //                             _strcpy(buff, Shell._buff);
+    //                             break;
+    //                         case 'f':
+    //                             params[index] = (any_t){.f = atof(Shell._buff)};
+    //                             if (params[index].f == 0.f)
+    //                                 input.state = STATE_ERROR_PARAMS;
+    //                             break;
+    //                         case 'd':
+    //                             params[index] = (any_t){.d = atof(Shell._buff)};
+    //                             if (params[index].d == 0.)
+    //                                 input.state = STATE_ERROR_PARAMS;
+    //                             break;
+    //                         default:
+    //                             input.state = STATE_ERROR_PARAMS;
+    //                     }
+    //                     index++;
+    //                 } else 
+    //                     input.state = STATE_ERROR_PARAMS;
+    //                 if (c == ')' && index < sign_len)
+    //                     input.state = STATE_ERROR_PARAMS;
+    //             }
+    //             break;
+    //         case STATE_DONE:
+    //         case STATE_ERROR_FUNC:
+    //         case STATE_ERROR_PARAMS:
+    //         case STATE_ERROR_LEN:
+    //             break;
+    //     }
+    // } while (++next < end);
     
     if (input.state == STATE_ERROR_FUNC)
         _print("Command not found\n");

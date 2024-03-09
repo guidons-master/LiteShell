@@ -12,16 +12,6 @@ int _getchar() {
     tcsetattr(STDIN_FILENO, TCSANOW, &new);
     static char ch;
     read(STDIN_FILENO, &ch, 1);
-    if (ch == '\033') {
-        count++;
-    } else if (count == 0) {
-        printf("%c", ch);
-        fflush(stdout);    
-    } else if (count != 0)
-        count += 1;
-    else if (count == 3)
-        count = 0;
-    
     return ch;
 }
 
