@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/liteshell.jpg" width="200" height="200" alt="LiteShell" />
+<img src="./docs/liteshell.jpg" width="200" height="200" alt="LiteShell" />
 
 # *LiteShell*
         
@@ -74,7 +74,7 @@ typedef union {
 
 // test命令的参数为空
 void test() {
-    Shell.print("Hello, world!\n");
+    Shell.print("Hello, World!\n");
 }
 
 // test1命令的参数为int、char、str、float、double
@@ -109,7 +109,7 @@ gcc examples/basic.c src/liteshell.c src/port/test.c -Iinclude -o basic
 
 运行效果如下:
 
-![](./assets/demo.png)
+![](./docs/demo.png)
 
 ## 📦 集成方式
 

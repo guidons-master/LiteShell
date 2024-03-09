@@ -3,7 +3,7 @@
 
 // test命令的参数为空
 void test() {
-    Shell.print("Hello, world!\n");
+    Shell.print("Hello, World!\n");
 }
 
 // test1命令的参数为int、char、str、float、double

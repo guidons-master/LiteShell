@@ -19,20 +19,19 @@
     #define PACKED
 #endif
 
-#define INITIAL_MAP_SIZE                      10U
-
 /* 输入命令最大长度 */
-#define CMD_LEN_MAX                           29U
-
-/* 函数参数最大个数 */
-#define PARAMS_MAX                            10U
+#define CMD_LEN_MAX                           64U
 
 /* 是否使用历史记录 */
 #define USE_HISTORY
 
 #ifdef USE_HISTORY
+    /* 历史记录最大长度 */
     #define HISTORY_LEN_MAX                   10U
 #endif
+
+#define INITIAL_MAP_SIZE                      10U
+#define PARAMS_MAX                            10U
 
 #define add(func, sign, desc)      export((func_t)func, #func, sign, desc) 
 

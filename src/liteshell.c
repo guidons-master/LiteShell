@@ -259,10 +259,9 @@ static char* down_history() {
 static void argparse() {
     input.state = STATE_START;
     static cmd_t cmd = {0};
-    unsigned char cmd_start = 0, cmd_end = 0;
-    unsigned char param_start = 0, param_end = 0;
+    unsigned char start = 0, end = 0;
     unsigned char param_index = 0, param_len = 0;
-    unsigned char i = 0;
+    unsigned char i = 0, j = 0, k = 0;
     static char c;
 
     do {
@@ -270,68 +269,78 @@ static void argparse() {
         switch (input.state) {
             case STATE_START:
                 if (c != ' ') {
-                    cmd_start = i;
+                    start = i;
                     input.state = STATE_FUNC;
                 }
                 break;
             case STATE_FUNC:
                 if (c == '(' || c == '\0') {
-                    cmd_end = i;
-                    Shell._buff[cmd_end] = '\0';
-                    cmd = match(Shell._buff + cmd_start);
+                    Shell._buff[i] = '\0';
+                    cmd = match(Shell._buff + start);
+
                     if (cmd.func == (func_t)0) {
                         input.state = STATE_ERROR_FUNC;
-                    } else if (c == '\0')
-                        input.state = cmd.sign[0] == '\0' ? STATE_DONE : STATE_ERROR_PARAMS;
-                    else {
-                        param_start = i + 1;
+                    } else if (c == '\0') {
+                        input.state = (cmd.sign[0] == '\0') ? STATE_DONE : STATE_ERROR_PARAMS;
+                    } else {
+                        start = i + 1;
                         param_len = _strlen(cmd.sign);
-                        input.state = STATE_PARAMS;
+                        input.state = (cmd.sign[0] == '\0') ? STATE_DONE : STATE_PARAMS;
                     }
                 }
                 break;
             case STATE_PARAMS:
                 if (c == ',' || c == ')') {
-                    param_end = i;
-                    Shell._buff[param_end] = '\0';
+                    end = i;
+                    Shell._buff[end] = '\0';
                     switch (cmd.sign[param_index]) {
                         case 'i':
-                            params[param_index].l = atol(Shell._buff + param_start);
+                            params[param_index].l = atol(Shell._buff + start);
                             if (params[param_index].l == 0)
                                 input.state = STATE_ERROR_PARAMS;
                             break;
                         case 'f':
-                            params[param_index].f = atof(Shell._buff + param_start);
+                            params[param_index].f = atof(Shell._buff + start);
                             if (params[param_index].f == 0.f)
                                 input.state = STATE_ERROR_PARAMS;
                             break;
                         case 'd':
-                            params[param_index].d = atof(Shell._buff + param_start);
+                            params[param_index].d = atof(Shell._buff + start);
                             if (params[param_index].d == 0.)
                                 input.state = STATE_ERROR_PARAMS;
                             break;
                         case 'c':
-                            if (Shell._buff[param_start] == '\'' && Shell._buff[param_end - 1] == '\'' && param_end - param_start == 3)
-                                params[param_index].c = Shell._buff[param_start + 1];
-                            else 
-                                input.state = STATE_ERROR_PARAMS;
-                            break;
-                        case 's':
-                            if (Shell._buff[param_start] == '"' && Shell._buff[param_end - 1] == '"') {
-                                Shell._buff[param_end - 1] = '\0';  // Add this line to remove the last double quote
-                                params[param_index].str = Shell._buff + param_start + 1;
+                            for (j = start; j < end; j++)
+                                if (Shell._buff[j] == '\'') break;
+                            for (k = j + 1; k < end; k++)
+                                if (Shell._buff[k] == '\'') break;
+
+                            if (k - j == 2) {
+                                params[param_index].c = Shell._buff[j + 1];
                             } else 
                                 input.state = STATE_ERROR_PARAMS;
                             break;
+                        case 's':
+                            for (j = start; j < end; j++)
+                                if (Shell._buff[j] == '"') break;
+                            for (k = j + 1; k < end; k++)
+                                if (Shell._buff[k] == '"') break;
 
+                            if (k > j) {
+                                Shell._buff[k] = '\0';
+                                params[param_index].str = Shell._buff + j + 1;
+                            } else 
+                                input.state = STATE_ERROR_PARAMS;
+                            break;
                         default:
                             input.state = STATE_ERROR_PARAMS;
                     }
                     param_index++;
-                    param_start = i + 1;
+                    start = i + 1;
                     if (c == ')')
                         input.state = (param_index != param_len) ? STATE_ERROR_PARAMS : STATE_DONE;
-                }
+                } else if (c == '\0')
+                    input.state = STATE_ERROR_PARAMS;
                 break;
             case STATE_DONE:
             case STATE_ERROR_FUNC:
