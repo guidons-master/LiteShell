@@ -7,8 +7,9 @@ void test() {
 }
 
 // test1命令的参数为int、char、str、float、double
-void test1(any_t a, any_t b, any_t c, any_t d, any_t e) {
+int test1(any_t a, any_t b, any_t c, any_t d, any_t e) {
     printf("a=%d, b=%c, c=%s, d=%f, e=%lf\n", a.i, b.c, c.str, d.f, e.d);
+    return 0;
 }
 
 int main() {

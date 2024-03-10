@@ -30,9 +30,8 @@
 void Shell.add(void (*func)(), const char *signature, const char *desc);
 ```
 - `func`：命令函数指针
-    - 命令函数的参数类型为 `any_t`，可以接受任意类型的参数
+    - 命令函数的参数类型为 `any_t`，可以接受多种类型的参数
     - 命令函数的参数个数和类型由 `signature` 参数指定
-    - 命令函数的返回值类型为 `void`
 - `signature`：命令参数签名
     - 用于指定命令函数的参数个数和类型
     - 例如：`"icsfd"` 表示命令函数有5个参数，分别为 `int`、`char`、`char*`、`float`、`double`
