@@ -137,3 +137,8 @@ gcc examples/basic.c src/liteshell.c src/port/test.c -Iinclude -o basic
 ## 📦 集成方式
 
 要在您的项目中集成LiteShell，只需要包含 `liteshell.h` 头文件，并链接 `liteshell.c` 源文件，此外您还需要为LiteShell提供 `_putchar` 和 `_getchar` 函数的实现，用于控制台输入输出，参考 [port](./src/port/) 目录下的示例代码。
+
+## 🧑‍💻 维护人员
+
+- [@guidons-master](https://github.com/guidons-master)
+- [@Hexin Lv](https://github.com/Mondaylv)
