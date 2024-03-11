@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
-#include "port/test.h"
+#include "port.h"
 
 int _getchar() {
     static struct termios old, new;

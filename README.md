@@ -21,13 +21,20 @@
 
 - **命令注册和查找**：通过 `哈希表+链表` 的数据结构实现，可以在 `O(1)` 时间内高效地完成命令查询。
 - **命令参数解析**：使用 `有限状态机` 算法实现，可以对命令参数进行高效解析和类型检查。
+- **参数类型支持**：使用 `联合体` 实现 `any_t` 类型，支持多种基本数据类型作为命令参数。
 
 ## 🛠️ 使用说明
 
-使用 `Shell.add()` 函数注册命令，该函数参数如下:
-    
+使用 `Shell.addFunc` 函数注册命令，使用`Shell.addVar`函数注册变量，函数原型如下:
+ 
 ```c
-void Shell.add(void (*func)(), const char *signature, const char *desc);
+void Shell.addVar(void *var, const char *desc);
+````
+- `var`：变量或函数指针
+- `desc`：变量描述
+
+```c
+void Shell.addFunc(void (*func)(), const char *signature, const char *desc);
 ```
 - `func`：命令函数指针
     - 命令函数的参数类型为 `any_t`，可以接受多种类型的参数
@@ -47,6 +54,7 @@ LiteShell支持以下基本数据类型作为命令参数:
 | float(单精度浮点数)     | f    | 3.14  |
 | double(双精度浮点数)    | d    | 3.141 |
 | char*(字符串)           | s    | "abc" |
+| void*                   | p    | &var  |
 
 其中 `any_t` 类型的定义如下:
 
@@ -62,6 +70,7 @@ typedef union {
     float f;
     double d;
     char* str;
+    void* ptr;
 } any_t;
 ```
 
@@ -70,6 +79,10 @@ typedef union {
 ```c
 #include "liteshell.h"
 #include <stdio.h>
+
+struct test_t {
+    int data;
+} a = {0};
 
 // test命令的参数为空
 void test() {
@@ -82,13 +95,23 @@ int test1(any_t a, any_t b, any_t c, any_t d, any_t e) {
     return 0;
 }
 
+// test2命令的参数为struct test_t*、void(*)()
+void test2(struct test_t* a, any_t b) {
+    printf("a=%d\n", a->data);
+    ((void(*)())b.ptr)();
+}
+
 int main() {
     // 初始化Shell
     Shell.init();
     // 注册test命令, 参数为空
-    Shell.add(test, "", "test for print");
+    Shell.addFunc(test, "", "test for print");
     // 注册test1命令, 签名为"icsfd"
-    Shell.add(test1, "icsfd", "test1(int, char, char*, float, double)");
+    Shell.addFunc(test1, "icsfd", "test1(int, char, char*, float, double)");
+    // 注册a变量，注册后可以在Shell中作为参数使用
+    Shell.addVar(a, "test struct");
+    // 注册test2命令, 签名为"pp"
+    Shell.addFunc(test2, "pp", "test2(struct test_t*, void(*)())");
     // 运行Shell
     while (1) Shell.run();
     // 销毁Shell
@@ -113,4 +136,4 @@ gcc examples/basic.c src/liteshell.c src/port/test.c -Iinclude -o basic
 
 ## 📦 集成方式
 
-要在您的项目中集成LiteShell，只需要包含 `liteshell.h` 头文件，并链接 `liteshell.c` 源文件即可。您还需要为LiteShell提供 `_putchar` 和 `_getchar` 函数的实现，用于控制台输入输出，参考 [port](./src/port/) 目录下的示例代码。
+要在您的项目中集成LiteShell，只需要包含 `liteshell.h` 头文件，并链接 `liteshell.c` 源文件，此外您还需要为LiteShell提供 `_putchar` 和 `_getchar` 函数的实现，用于控制台输入输出，参考 [port](./src/port/) 目录下的示例代码。

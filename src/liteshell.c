@@ -1,6 +1,6 @@
 #include "liteshell.h"
 #include <stdlib.h>
-#include "port/test.h"
+#include "port.h"
 
 #define PTR_CHECK() map == (map_t*)0
 
@@ -58,12 +58,12 @@ void _begin() {
     for (unsigned int i = 0; i < map->size; map->entries[i++] = (entry_t*)0);
     _export((func_t)help, "help", "", "show all commands");
     _export((func_t)clear, "clear", "", "clear the screen");
-    // _print(" _     _ _         ____  _          _ _ \n");
-    // _print("| |   (_) |_ ___  / ___|| |__   ___| | |\n");
-    // _print("| |   | | __/ _ \\ \\___ \\| '_ \\ / _ \\ | |\n");
-    // _print("| |___| | ||  __/  ___) | | | |  __/ | |\n");
-    // _print("|_____|_|\\__\\___| |____/|_| |_|\\___|_|_| \n");
-    // _print("\033[32mVersion: "VERSION " Build: "__TIME__" "__DATE__"\033[0m\n");
+    _print(" _     _ _         ____  _          _ _ \n");
+    _print("| |   (_) |_ ___  / ___|| |__   ___| | |\n");
+    _print("| |   | | __/ _ \\ \\___ \\| '_ \\ / _ \\ | |\n");
+    _print("| |___| | ||  __/  ___) | | | |  __/ | |\n");
+    _print("|_____|_|\\__\\___| |____/|_| |_|\\___|_|_| \n");
+    _print("\033[32mVersion: "VERSION " Build: "__TIME__" "__DATE__"\033[0m\n");
 }
 
 static INLINE int _strcmp(const char* str1, const char* str2) {
@@ -157,13 +157,6 @@ void _free() {
     free(map);
 }
 
-void __attribute__((weak)) _putchar(char c) {
-}
-
-int __attribute__((weak)) _getchar() {
-    return -1;
-}
-
 INLINE void _print(const char* str) {
     for (unsigned int i = 0; str[i] != '\0'; _putchar(str[i++]));
 }
@@ -229,7 +222,7 @@ static void exec(func_t func, unsigned char len) {
 #ifdef USE_HISTORY
 
 static char history[HISTORY_LEN_MAX][CMD_LEN_MAX+1];
-static char index[2];
+static unsigned char index[2];
 
 static void add_history(const char *command) {
     _strcpy(history[index[1]], command);
@@ -263,7 +256,7 @@ static void argparse() {
     unsigned char start = 0, end = 0;
     unsigned char param_index = 0, param_len = 0;
     unsigned char i = 0, j = 0, k = 0;
-    static char c;
+    static char c, is_var;
 
     do {
         c = Shell._buff[i];
@@ -334,18 +327,22 @@ static void argparse() {
                                 input.state = STATE_ERROR_PARAMS;
                             break;
                         case 'p':
-                            for (j = start; j < end; j++)
-                                if (Shell._buff[j] != ' ') break;
-                            for (k = end - 1; k > j; k--)
-                                if (Shell._buff[k] != ' ') {
-                                    Shell._buff[k + 1] = '\0';
-                                    break;
-                                }
-                            ptr = match(Shell._buff + j);
-                            if (ptr.sign == (char*)0)
+                            for (j = start; Shell._buff[j] == ' '; j++);
+
+                            for (k = end - 1; Shell._buff[k] == ' '; k--);
+                            Shell._buff[k + 1] = '\0';
+
+                            is_var = (Shell._buff[j] == '&');
+                            ptr = match(Shell._buff + j + (is_var ? 1 : 0));
+
+                            if (ptr.sign == NULL)
                                 input.state = STATE_ERROR_PARAMS;
+                            else if (is_var && ptr.func == NULL)
+                                params[param_index].ptr = (void*)ptr.sign;
+                            else if (!is_var && ptr.func != NULL)
+                                params[param_index].ptr = ptr.func;
                             else
-                                params[param_index].ptr = (ptr.func == (func_t)0 ? (void*)ptr.sign : ptr.func);
+                                input.state = STATE_ERROR_PARAMS;
                             break;
                         default:
                             input.state = STATE_ERROR_PARAMS;
