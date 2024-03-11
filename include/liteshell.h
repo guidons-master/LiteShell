@@ -33,7 +33,8 @@
 #define INITIAL_MAP_SIZE                      10U
 #define PARAMS_MAX                            10U
 
-#define add(func, sign, desc)      export((func_t)func, #func, sign, desc) 
+#define addFunc(func, sign, desc)      export((func_t)func, #func, sign, desc)
+#define addVar(var, desc)              export((func_t)0, #var, (void*)&var, desc)
 
 typedef void (*func_t) ();
 
@@ -48,13 +49,14 @@ typedef union {
     float f;
     double d;
     char* str;
+    void* ptr;
 } any_t;
 
 typedef struct PACKED {
     char _buff[CMD_LEN_MAX+1];
     void (*init)();
-    void (*print)(const char* str);
-    void (*export)(func_t, const char* name, const char* sign, const char* desc);
+    void (*print)(const char*);
+    void (*export)(func_t, const char*, const char*, const char*);
     void (*run)();
     void (*free)();  
 } liteshell_t;

@@ -58,12 +58,12 @@ void _begin() {
     for (unsigned int i = 0; i < map->size; map->entries[i++] = (entry_t*)0);
     _export((func_t)help, "help", "", "show all commands");
     _export((func_t)clear, "clear", "", "clear the screen");
-    _print(" _     _ _         ____  _          _ _ \n");
-    _print("| |   (_) |_ ___  / ___|| |__   ___| | |\n");
-    _print("| |   | | __/ _ \\ \\___ \\| '_ \\ / _ \\ | |\n");
-    _print("| |___| | ||  __/  ___) | | | |  __/ | |\n");
-    _print("|_____|_|\\__\\___| |____/|_| |_|\\___|_|_| \n");
-    _print("\033[32mVersion: "VERSION " Build: "__TIME__" "__DATE__"\033[0m\n");
+    // _print(" _     _ _         ____  _          _ _ \n");
+    // _print("| |   (_) |_ ___  / ___|| |__   ___| | |\n");
+    // _print("| |   | | __/ _ \\ \\___ \\| '_ \\ / _ \\ | |\n");
+    // _print("| |___| | ||  __/  ___) | | | |  __/ | |\n");
+    // _print("|_____|_|\\__\\___| |____/|_| |_|\\___|_|_| \n");
+    // _print("\033[32mVersion: "VERSION " Build: "__TIME__" "__DATE__"\033[0m\n");
 }
 
 static INLINE int _strcmp(const char* str1, const char* str2) {
@@ -107,7 +107,7 @@ void _export(func_t func, const char* name, const char* sign, const char* desc) 
     int index = fnv_hash(name, map->size);
     entry_t* entry = (entry_t*)malloc(sizeof(entry_t));
     entry->key = name;
-    entry->cmd = (cmd_t){.func = func, .sign = sign, .desc = desc};
+    entry->cmd = (cmd_t){func, sign, desc};
     entry->next = map->entries[index];
     map->entries[index] = entry;
     map->count++;
@@ -122,7 +122,7 @@ static cmd_t match(const char* key) {
         }
         entry = entry->next;
     }
-    return (cmd_t){(func_t)0, (const char*)0, (const char*)0};
+    return (cmd_t){(func_t)0, (char*)0, (char*)0};
 }
 
 static void help() {
@@ -161,6 +161,7 @@ void __attribute__((weak)) _putchar(char c) {
 }
 
 int __attribute__((weak)) _getchar() {
+    return -1;
 }
 
 INLINE void _print(const char* str) {
@@ -258,7 +259,7 @@ static char* down_history() {
 
 static void argparse() {
     input.state = STATE_START;
-    static cmd_t cmd = {0};
+    static cmd_t cmd = {0}, ptr = {0};
     unsigned char start = 0, end = 0;
     unsigned char param_index = 0, param_len = 0;
     unsigned char i = 0, j = 0, k = 0;
@@ -331,6 +332,20 @@ static void argparse() {
                                 params[param_index].str = Shell._buff + j + 1;
                             } else 
                                 input.state = STATE_ERROR_PARAMS;
+                            break;
+                        case 'p':
+                            for (j = start; j < end; j++)
+                                if (Shell._buff[j] != ' ') break;
+                            for (k = end - 1; k > j; k--)
+                                if (Shell._buff[k] != ' ') {
+                                    Shell._buff[k + 1] = '\0';
+                                    break;
+                                }
+                            ptr = match(Shell._buff + j);
+                            if (ptr.sign == (char*)0)
+                                input.state = STATE_ERROR_PARAMS;
+                            else
+                                params[param_index].ptr = (ptr.func == (func_t)0 ? (void*)ptr.sign : ptr.func);
                             break;
                         default:
                             input.state = STATE_ERROR_PARAMS;
