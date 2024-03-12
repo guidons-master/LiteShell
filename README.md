@@ -140,5 +140,5 @@ gcc examples/basic.c src/liteshell.c src/port/test.c -Iinclude -o basic
 
 ## 🧑‍💻 维护人员
 
-- [@guidons-master](https://github.com/guidons-master)
+- [@guidons](https://github.com/guidons-master)
 - [@Hexin Lv](https://github.com/Mondaylv)
